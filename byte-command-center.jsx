@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Play, Pause, Zap, Brain, Settings, Activity, MessageSquare,
+import { 
+  Play, Pause, Zap, Brain, Settings, Activity, MessageSquare, 
   GitBranch, Database, Clock, CheckCircle2, AlertCircle, XCircle,
   Send, Paperclip, Code2, FileText, Image, Layers, Grid3X3,
   ChevronRight, ChevronDown, MoreHorizontal, Plus, Search,
@@ -11,157 +11,39 @@ import {
 } from 'lucide-react';
 
 // ============================================================================
-// OPENROUTER CONFIGURATION
-// ============================================================================
-
-const OPENROUTER_API_KEY = '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';
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-
-const AI_MODELS = {
-  orchestration: {
-    id: 'google/gemini-3.0-pro',
-    name: 'Gemini 3.0 Pro',
-    description: 'Orchestration & Planning',
-    color: 'from-blue-400 to-indigo-500'
-  },
-  architecture: {
-    id: 'openai/chatgpt-5.2',
-    name: 'ChatGPT 5.2',
-    description: 'Architecture & Design',
-    color: 'from-green-400 to-emerald-500'
-  },
-  coding: {
-    id: 'anthropic/claude-sonnet-4.5',
-    name: 'Claude Sonnet 4.5',
-    description: 'Code Generation',
-    color: 'from-orange-400 to-amber-500'
-  },
-  multiAgent: {
-    id: 'anthropic/claude-opus-4.5',
-    name: 'Claude Opus 4.5',
-    description: 'Multi-Agent Coordination',
-    color: 'from-purple-400 to-violet-500'
-  },
-  webScraping: {
-    id: 'openai/chatgpt-5.2',
-    name: 'ChatGPT 5.2',
-    description: 'Web Scraping & Data',
-    color: 'from-cyan-400 to-teal-500'
-  }
-};
-
-// OpenRouter API call function
-const callOpenRouter = async (messages, modelKey = 'orchestration') => {
-  const model = AI_MODELS[modelKey];
-
-  try {
-    const response = await fetch(OPENROUTER_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Byte Command Center'
-      },
-      body: JSON.stringify({
-        model: model.id,
-        messages: messages,
-        max_tokens: 2048,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content || 'No response generated.';
-  } catch (error) {
-    console.error('OpenRouter API error:', error);
-    return `Error connecting to ${model.name}. Please check your connection and try again.`;
-  }
-};
-
-// ============================================================================
-// MODEL SELECTOR COMPONENT
-// ============================================================================
-
-const ModelSelector = ({ selectedModel, onModelChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const model = AI_MODELS[selectedModel];
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r ${model.color} bg-opacity-20 border border-slate-600 rounded-lg text-sm hover:border-cyan-500/50 transition-all`}
-      >
-        <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${model.color}`} />
-        <span className="text-white font-medium">{model.name}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute top-full mt-2 left-0 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
-          <div className="p-2 border-b border-slate-700">
-            <p className="text-xs text-slate-500 px-2">Select AI Model</p>
-          </div>
-          <div className="p-2 space-y-1">
-            {Object.entries(AI_MODELS).map(([key, m]) => (
-              <button
-                key={key}
-                onClick={() => {
-                  onModelChange(key);
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  selectedModel === key
-                    ? 'bg-cyan-500/20 text-cyan-400'
-                    : 'text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${m.color}`} />
-                <div className="text-left">
-                  <p className="text-sm font-medium">{m.name}</p>
-                  <p className="text-xs text-slate-500">{m.description}</p>
-                </div>
-                {selectedModel === key && (
-                  <CheckCircle2 className="w-4 h-4 ml-auto text-cyan-400" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================================
 // BYTE COMMAND CENTER
+// Unified platform for rapid prototyping + multi-agent orchestration
+// Brand: byteable.ai colors - Cyan/Teal primary, Indigo accents
 // ============================================================================
 
 const ByteCommandCenter = () => {
+  // Navigation state
   const [activeView, setActiveView] = useState('command');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('orchestration');
-
+  
+  // Chat/Prototyping state
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'system',
-      content: 'Welcome to Byte. I can help you prototype applications, delegate to your dev team, or orchestrate your multi-agent system. What would you like to build today?',
+      content: 'Welcome to Byte. I can help you prototype applications, delegate to your dev team, or orchestrate your 57-agent system. What would you like to build today?',
       timestamp: new Date(),
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
+  
+  // Agent state
   const [agents, setAgents] = useState(INITIAL_AGENTS);
   const [selectedAgent, setSelectedAgent] = useState(null);
+  
+  // Outbox state
   const [outboxItems, setOutboxItems] = useState(INITIAL_OUTBOX);
+  
+  // Tool connections state
   const [integrations, setIntegrations] = useState(INITIAL_INTEGRATIONS);
+  
+  // Memory state
   const [memoryStats, setMemoryStats] = useState({
     scratchpad: { items: 47, ttl: '24-72h' },
     episodic: { items: 1243, ttl: '30-90d' },
@@ -170,16 +52,20 @@ const ByteCommandCenter = () => {
   });
 
   const chatEndRef = useRef(null);
-
+  
+  // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Simulated agent activity
   useEffect(() => {
     const interval = setInterval(() => {
       setAgents(prev => prev.map(agent => ({
         ...agent,
-        lastRun: agent.status === 'running' ? new Date() : agent.lastRun,
+        lastRun: agent.status === 'running' 
+          ? new Date() 
+          : agent.lastRun,
         progress: agent.status === 'running'
           ? Math.min(100, agent.progress + Math.random() * 15)
           : agent.progress
@@ -188,76 +74,46 @@ const ByteCommandCenter = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Handle sending messages
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-
+    
     const userMessage = {
       id: messages.length + 1,
       role: 'user',
       content: inputValue,
       timestamp: new Date(),
     };
-
+    
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsProcessing(true);
-
-    const apiMessages = [
-      { role: 'system', content: 'You are Byte, an AI assistant for a multi-agent orchestration platform. Help users build applications, manage agents, and automate workflows. Be concise and helpful.' },
-      ...messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content })),
-      { role: 'user', content: inputValue }
-    ];
-
-    try {
-      const response = await callOpenRouter(apiMessages, selectedModel);
-      const artifacts = detectArtifacts(inputValue, response);
-
+    
+    // Simulate AI response
+    setTimeout(() => {
+      const aiResponse = generateAIResponse(inputValue);
       setMessages(prev => [...prev, {
         id: prev.length + 1,
         role: 'assistant',
-        content: response,
-        artifacts: artifacts,
-        timestamp: new Date(),
-        model: AI_MODELS[selectedModel].name
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: prev.length + 1,
-        role: 'assistant',
-        content: 'I encountered an error processing your request. Please try again.',
+        content: aiResponse.content,
+        artifacts: aiResponse.artifacts,
         timestamp: new Date(),
       }]);
-    }
-
-    setIsProcessing(false);
-  };
-
-  const detectArtifacts = (input, response) => {
-    const artifacts = [];
-    const lowered = input.toLowerCase();
-
-    if (lowered.includes('component') || lowered.includes('dashboard')) {
-      artifacts.push({ type: 'component', name: 'GeneratedComponent.jsx', size: '3.2 KB' });
-    }
-    if (lowered.includes('document') || lowered.includes('spec')) {
-      artifacts.push({ type: 'document', name: 'Specification.md', size: '1.8 KB' });
-    }
-    if (response.includes('```')) {
-      artifacts.push({ type: 'component', name: 'CodeOutput.jsx', size: '2.1 KB' });
-    }
-
-    return artifacts;
+      setIsProcessing(false);
+    }, 1500);
   };
 
   return (
     <div className="h-screen w-full bg-slate-950 text-white font-sans overflow-hidden flex">
+      {/* Ambient background - Byte brand colors */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[128px]" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[128px]" />
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-teal-500/5 rounded-full blur-[128px]" />
       </div>
 
-      <Sidebar
+      {/* Sidebar Navigation */}
+      <Sidebar 
         activeView={activeView}
         setActiveView={setActiveView}
         collapsed={sidebarCollapsed}
@@ -266,9 +122,12 @@ const ByteCommandCenter = () => {
         outboxItems={outboxItems}
       />
 
+      {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <TopBar activeView={activeView} selectedModel={selectedModel} />
+        {/* Top Bar */}
+        <TopBar activeView={activeView} />
 
+        {/* Dynamic Content */}
         <div className="flex-1 overflow-hidden">
           {activeView === 'command' && (
             <CommandCenterView
@@ -280,8 +139,6 @@ const ByteCommandCenter = () => {
               chatEndRef={chatEndRef}
               agents={agents}
               memoryStats={memoryStats}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
             />
           )}
           {activeView === 'prototype' && (
@@ -292,8 +149,6 @@ const ByteCommandCenter = () => {
               handleSend={handleSend}
               isProcessing={isProcessing}
               chatEndRef={chatEndRef}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
             />
           )}
           {activeView === 'agents' && (
@@ -341,6 +196,7 @@ const Sidebar = ({ activeView, setActiveView, collapsed, setCollapsed, agents, o
 
   return (
     <aside className={`relative z-20 flex flex-col bg-slate-900/80 backdrop-blur-xl border-r border-slate-800 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+      {/* Logo - Byte branding */}
       <div className="p-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -349,12 +205,13 @@ const Sidebar = ({ activeView, setActiveView, collapsed, setCollapsed, agents, o
           {!collapsed && (
             <div>
               <h1 className="font-bold text-lg tracking-tight">Byte</h1>
-              <p className="text-xs text-slate-500">Multi-Model Platform</p>
+              <p className="text-xs text-slate-500">57-Agent System</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map(item => (
           <button
@@ -383,6 +240,7 @@ const Sidebar = ({ activeView, setActiveView, collapsed, setCollapsed, agents, o
         ))}
       </nav>
 
+      {/* Bottom section */}
       <div className="p-3 border-t border-slate-800">
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -400,7 +258,7 @@ const Sidebar = ({ activeView, setActiveView, collapsed, setCollapsed, agents, o
 // TOP BAR COMPONENT
 // ============================================================================
 
-const TopBar = ({ activeView, selectedModel }) => {
+const TopBar = ({ activeView }) => {
   const titles = {
     command: 'Command Center',
     prototype: 'Rapid Prototype',
@@ -419,7 +277,7 @@ const TopBar = ({ activeView, selectedModel }) => {
           <span className="text-xs text-teal-400 font-medium">System Online</span>
         </div>
       </div>
-
+      
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-lg">
           <Search className="w-4 h-4 text-slate-500" />
@@ -442,32 +300,32 @@ const TopBar = ({ activeView, selectedModel }) => {
 // COMMAND CENTER VIEW
 // ============================================================================
 
-const CommandCenterView = ({
+const CommandCenterView = ({ 
   messages, inputValue, setInputValue, handleSend, isProcessing, chatEndRef,
-  agents, memoryStats, selectedModel, setSelectedModel
+  agents, memoryStats 
 }) => {
   return (
     <div className="h-full flex">
+      {/* Main Chat/Command Area */}
       <div className="flex-1 flex flex-col">
+        {/* Quick Actions Bar */}
         <div className="px-6 py-4 border-b border-slate-800/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-500">Quick Actions:</span>
-              {QUICK_ACTIONS.map((action, i) => (
-                <button
-                  key={i}
-                  onClick={() => setInputValue(action.prompt)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:text-white transition-all"
-                >
-                  <action.icon className="w-4 h-4 text-cyan-400" />
-                  {action.label}
-                </button>
-              ))}
-            </div>
-            <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500">Quick Actions:</span>
+            {QUICK_ACTIONS.map((action, i) => (
+              <button
+                key={i}
+                onClick={() => setInputValue(action.prompt)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:text-white transition-all"
+              >
+                <action.icon className="w-4 h-4 text-cyan-400" />
+                {action.label}
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {messages.map(message => (
             <MessageBubble key={message.id} message={message} />
@@ -477,7 +335,7 @@ const CommandCenterView = ({
               <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-600 rounded-lg flex items-center justify-center animate-pulse">
                 <Brain className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm">Processing with {AI_MODELS[selectedModel].name}...</span>
+              <span className="text-sm">Processing request...</span>
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -488,6 +346,7 @@ const CommandCenterView = ({
           <div ref={chatEndRef} />
         </div>
 
+        {/* Input Area */}
         <ChatInput
           inputValue={inputValue}
           setInputValue={setInputValue}
@@ -496,7 +355,9 @@ const CommandCenterView = ({
         />
       </div>
 
+      {/* Right Sidebar - Status Panels */}
       <div className="w-80 border-l border-slate-800/50 bg-slate-900/30 overflow-y-auto">
+        {/* Active Agents Panel */}
         <div className="p-4 border-b border-slate-800/50">
           <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
             <Activity className="w-4 h-4 text-cyan-400" />
@@ -511,7 +372,7 @@ const CommandCenterView = ({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{agent.name}</p>
                   <div className="w-full h-1 bg-slate-700 rounded-full mt-1">
-                    <div
+                    <div 
                       className="h-full bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full transition-all"
                       style={{ width: `${agent.progress}%` }}
                     />
@@ -522,6 +383,7 @@ const CommandCenterView = ({
           </div>
         </div>
 
+        {/* Memory Status */}
         <div className="p-4 border-b border-slate-800/50">
           <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
             <Database className="w-4 h-4 text-indigo-400" />
@@ -537,6 +399,7 @@ const CommandCenterView = ({
           </div>
         </div>
 
+        {/* Recent Outputs */}
         <div className="p-4">
           <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4 text-sky-400" />
@@ -560,23 +423,22 @@ const CommandCenterView = ({
 };
 
 // ============================================================================
-// PROTOTYPE VIEW
+// PROTOTYPE VIEW (Bolt/Byte-style)
 // ============================================================================
 
-const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProcessing, chatEndRef, selectedModel, setSelectedModel }) => {
+const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProcessing, chatEndRef }) => {
   const [previewMode, setPreviewMode] = useState('split');
   const [activeTab, setActiveTab] = useState('preview');
 
   return (
     <div className="h-full flex">
+      {/* Chat Panel */}
       <div className={`flex flex-col bg-slate-900/50 border-r border-slate-800/50 ${previewMode === 'split' ? 'w-1/2' : previewMode === 'chat' ? 'flex-1' : 'w-80'}`}>
+        {/* Prototype Templates */}
         <div className="p-4 border-b border-slate-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium">Start from template</span>
-            </div>
-            <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium">Start from template</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {PROJECT_TEMPLATES.map((template, i) => (
@@ -591,14 +453,16 @@ const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProc
           </div>
         </div>
 
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.map(message => (
             <MessageBubble key={message.id} message={message} compact />
           ))}
-          {isProcessing && <ProcessingIndicator model={AI_MODELS[selectedModel].name} />}
+          {isProcessing && <ProcessingIndicator />}
           <div ref={chatEndRef} />
         </div>
 
+        {/* Input */}
         <ChatInput
           inputValue={inputValue}
           setInputValue={setInputValue}
@@ -608,8 +472,10 @@ const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProc
         />
       </div>
 
+      {/* Preview Panel */}
       {previewMode !== 'chat' && (
         <div className="flex-1 flex flex-col bg-slate-950">
+          {/* Preview Tabs */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50">
             <div className="flex items-center gap-1">
               {['preview', 'code', 'files'].map(tab => (
@@ -640,6 +506,7 @@ const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProc
             </div>
           </div>
 
+          {/* Preview Content */}
           <div className="flex-1 relative">
             {activeTab === 'preview' && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
@@ -676,7 +543,9 @@ const AgentsView = ({ agents, setAgents, selectedAgent, setSelectedAgent }) => {
 
   return (
     <div className="h-full flex">
+      {/* Agent List */}
       <div className="w-96 border-r border-slate-800/50 flex flex-col">
+        {/* Category Filters */}
         <div className="p-4 border-b border-slate-800/50">
           <div className="flex flex-wrap gap-2">
             {agentCategories.map(cat => (
@@ -690,6 +559,7 @@ const AgentsView = ({ agents, setAgents, selectedAgent, setSelectedAgent }) => {
           </div>
         </div>
 
+        {/* Agent Cards */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {agents.map(agent => (
             <AgentCard
@@ -702,6 +572,7 @@ const AgentsView = ({ agents, setAgents, selectedAgent, setSelectedAgent }) => {
         </div>
       </div>
 
+      {/* Agent Detail */}
       <div className="flex-1 bg-slate-900/30">
         {selectedAgent ? (
           <AgentDetail agent={selectedAgent} setAgents={setAgents} />
@@ -737,7 +608,7 @@ const AgentCard = ({ agent, selected, onClick }) => {
     >
       <div className="flex items-start gap-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
-          agent.status === 'running'
+          agent.status === 'running' 
             ? 'bg-gradient-to-br from-teal-400 to-cyan-600 text-white'
             : 'bg-slate-700 text-slate-300'
         }`}>
@@ -772,6 +643,7 @@ const AgentCard = ({ agent, selected, onClick }) => {
 const AgentDetail = ({ agent, setAgents }) => {
   return (
     <div className="h-full flex flex-col">
+      {/* Header */}
       <div className="p-6 border-b border-slate-800/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -800,6 +672,7 @@ const AgentDetail = ({ agent, setAgents }) => {
         </div>
       </div>
 
+      {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-3 gap-4 mb-6">
           <StatCard label="Quality Score" value={`${agent.qualityScore}%`} icon={Target} color="cyan" />
@@ -807,6 +680,7 @@ const AgentDetail = ({ agent, setAgents }) => {
           <StatCard label="Avg Runtime" value={agent.avgRuntime} icon={Clock} color="indigo" />
         </div>
 
+        {/* Recent Output */}
         <div className="bg-slate-800/30 rounded-xl p-4 mb-6">
           <h3 className="font-medium mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4 text-cyan-400" />
@@ -817,6 +691,7 @@ const AgentDetail = ({ agent, setAgents }) => {
           </div>
         </div>
 
+        {/* Configuration */}
         <div className="bg-slate-800/30 rounded-xl p-4">
           <h3 className="font-medium mb-3 flex items-center gap-2">
             <Settings className="w-4 h-4 text-slate-400" />
@@ -859,6 +734,7 @@ const OutboxView = ({ outboxItems, setOutboxItems }) => {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Header */}
       <div className="px-6 py-4 border-b border-slate-800/50 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {statusFilters.map(filter => (
@@ -886,6 +762,7 @@ const OutboxView = ({ outboxItems, setOutboxItems }) => {
         </div>
       </div>
 
+      {/* Items */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-4">
           {filteredItems.map(item => (
@@ -969,6 +846,7 @@ const IntegrationsView = ({ integrations, setIntegrations }) => {
 
   return (
     <div className="h-full overflow-y-auto p-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {categories.map(cat => (
@@ -991,6 +869,7 @@ const IntegrationsView = ({ integrations, setIntegrations }) => {
         </button>
       </div>
 
+      {/* Integration Grid */}
       <div className="grid grid-cols-3 gap-4">
         {integrations.map(integration => (
           <IntegrationCard key={integration.id} integration={integration} />
@@ -1036,37 +915,37 @@ const IntegrationCard = ({ integration }) => {
 
 const MemoryView = ({ memoryStats }) => {
   const memoryTiers = [
-    {
-      id: 'scratchpad',
-      name: 'Scratchpad',
-      icon: FileText,
+    { 
+      id: 'scratchpad', 
+      name: 'Scratchpad', 
+      icon: FileText, 
       color: 'sky',
       ttl: '24-72 hours',
       description: 'Short-term working memory for agent-to-agent communication',
       items: memoryStats.scratchpad.items
     },
-    {
-      id: 'episodic',
-      name: 'Episodic',
-      icon: Calendar,
+    { 
+      id: 'episodic', 
+      name: 'Episodic', 
+      icon: Calendar, 
       color: 'indigo',
       ttl: '30-90 days',
       description: 'Daily record of all agent outputs and events',
       items: memoryStats.episodic.items
     },
-    {
-      id: 'fact',
-      name: 'Fact Store',
-      icon: Database,
+    { 
+      id: 'fact', 
+      name: 'Fact Store', 
+      icon: Database, 
       color: 'teal',
       ttl: 'Permanent',
       description: 'Validated, canonical knowledge extracted from episodic memory',
       items: memoryStats.fact.items
     },
-    {
-      id: 'experiential',
-      name: 'Experiential',
-      icon: Lightbulb,
+    { 
+      id: 'experiential', 
+      name: 'Experiential', 
+      icon: Lightbulb, 
       color: 'cyan',
       ttl: 'Permanent',
       description: 'Abstracted patterns, lessons, and meta-insights',
@@ -1076,6 +955,7 @@ const MemoryView = ({ memoryStats }) => {
 
   return (
     <div className="h-full overflow-y-auto p-6">
+      {/* Memory Flow Diagram */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Memory Pipeline</h3>
         <div className="flex items-center justify-between bg-slate-800/30 rounded-xl p-6">
@@ -1096,6 +976,7 @@ const MemoryView = ({ memoryStats }) => {
         </div>
       </div>
 
+      {/* Memory Cards */}
       <div className="grid grid-cols-2 gap-4">
         {memoryTiers.map(tier => (
           <div key={tier.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5">
@@ -1139,10 +1020,10 @@ const MessageBubble = ({ message, compact }) => {
       )}
       <div className={`max-w-2xl ${isUser ? 'text-right' : ''}`}>
         <div className={`inline-block px-4 py-3 rounded-2xl ${
-          isUser
-            ? 'bg-cyan-500 text-slate-900'
-            : isSystem
-              ? 'bg-slate-800/50 text-slate-300'
+          isUser 
+            ? 'bg-cyan-500 text-slate-900' 
+            : isSystem 
+              ? 'bg-slate-800/50 text-slate-300' 
               : 'bg-slate-800/50 text-slate-100'
         } ${compact ? 'text-sm' : ''}`}>
           <p className="whitespace-pre-wrap">{message.content}</p>
@@ -1154,14 +1035,9 @@ const MessageBubble = ({ message, compact }) => {
             ))}
           </div>
         )}
-        <div className="flex items-center gap-2 mt-1">
-          <p className="text-xs text-slate-500">
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          {message.model && (
-            <span className="text-xs text-slate-600">• {message.model}</span>
-          )}
-        </div>
+        <p className="text-xs text-slate-500 mt-1">
+          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </p>
       </div>
     </div>
   );
@@ -1228,12 +1104,12 @@ const ChatInput = ({ inputValue, setInputValue, handleSend, isProcessing, placeh
   );
 };
 
-const ProcessingIndicator = ({ model }) => (
+const ProcessingIndicator = () => (
   <div className="flex items-center gap-3 text-slate-400">
     <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-teal-600 rounded-lg flex items-center justify-center animate-pulse">
       <Brain className="w-4 h-4 text-white" />
     </div>
-    <span className="text-sm">Processing with {model || 'AI'}...</span>
+    <span className="text-sm">Processing request...</span>
     <div className="flex gap-1">
       <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
       <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -1327,5 +1203,40 @@ const INITIAL_INTEGRATIONS = [
   { id: 5, name: 'Linear', icon: GitBranch, category: 'Development', description: 'Issue tracking and sprint management', vfsPath: '/context/tools/linear', connected: false, gradient: 'from-indigo-400 to-blue-600' },
   { id: 6, name: 'Google Workspace', icon: Globe, category: 'Productivity', description: 'Google Drive, Docs, and Sheets', vfsPath: '/context/tools/google', connected: true, gradient: 'from-teal-400 to-emerald-600' },
 ];
+
+// AI Response Generator (simplified for demo)
+const generateAIResponse = (input) => {
+  const lowered = input.toLowerCase();
+  
+  if (lowered.includes('dashboard') || lowered.includes('component')) {
+    return {
+      content: "I'll create that dashboard component for you. Here's what I'm building:\n\n• Modern analytics dashboard with real-time metrics\n• Responsive layout with card-based design\n• Interactive charts using Recharts\n• Dark theme with Byte brand colors\n\nI've generated the component and you can preview it in the sidebar. Should I also create the API integration for live data?",
+      artifacts: [
+        { type: 'component', name: 'AnalyticsDashboard.jsx', size: '4.2 KB' }
+      ]
+    };
+  }
+  
+  if (lowered.includes('agent') || lowered.includes('status')) {
+    return {
+      content: "Here's the current status of your agent fleet:\n\n**Active Agents (3)**\n• #1 Revenue Priority - 45% complete\n• #7 Market Trends - 72% complete  \n• #24 Project Manager - 23% complete\n\n**Pending Actions (3)**\nThere are 3 items in your outbox awaiting approval. Would you like me to summarize them?",
+      artifacts: []
+    };
+  }
+  
+  if (lowered.includes('team') || lowered.includes('delegate')) {
+    return {
+      content: "I can help delegate this to your dev team. I'll:\n\n1. Create detailed task specs in Asana\n2. Generate a technical brief document\n3. Notify the relevant team members via Slack\n4. Set up a follow-up reminder for review\n\nWould you like me to proceed with this delegation workflow?",
+      artifacts: [
+        { type: 'document', name: 'Task Specification.md', size: '2.1 KB' }
+      ]
+    };
+  }
+  
+  return {
+    content: "I understand. I can help you with that through our multi-agent system. Here are some ways I can assist:\n\n• **Rapid Prototype**: Generate code, components, or full applications\n• **Agent Orchestration**: Monitor and control your 57-agent fleet\n• **Tool Integration**: Connect and automate your productivity tools\n• **Memory Access**: Query historical data and insights\n\nWhat would you like to focus on?",
+    artifacts: []
+  };
+};
 
 export default ByteCommandCenter;
