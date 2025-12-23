@@ -922,28 +922,19 @@ const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProc
     setPrototypeMessages(prev => [...prev, userMessage]);
     setProtoInput('');
 
-    const systemPrompt = `You are an expert frontend developer. Generate clean, modern code based on the user's request.
+    const systemPrompt = `You are an expert frontend developer. Generate a complete, working HTML page based on the user's request.
 
-IMPORTANT RULES:
-1. Return ONLY valid code - no explanations before or after
-2. Use Tailwind CSS for styling
-3. Create self-contained HTML that works in an iframe
-4. Include all necessary inline styles and scripts
-5. Make it visually appealing with modern design
+CRITICAL RULES - FOLLOW EXACTLY:
+1. Return ONLY the HTML code - no explanations, no markdown, no code blocks
+2. Start with <!DOCTYPE html> and end with </html>
+3. Include Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
+4. Make it visually stunning with modern design, gradients, shadows
+5. Use a dark theme with slate-900 backgrounds and cyan/teal accents
+6. Include all CSS inline or in a <style> tag
+7. Make interactive elements work with inline JavaScript if needed
+8. The code must be self-contained and work in an iframe
 
-For React components, wrap them in a script that renders to a root div.
-For HTML, create complete, working pages.
-
-Respond with a JSON object in this exact format:
-{
-  "files": [
-    {"name": "index.html", "content": "<!DOCTYPE html>..."},
-    {"name": "styles.css", "content": "..."},
-    {"name": "App.jsx", "content": "..."}
-  ],
-  "previewHtml": "<!DOCTYPE html><html>...(complete working HTML for iframe preview)...</html>",
-  "summary": "Brief description of what was created"
-}`;
+DO NOT include any text before <!DOCTYPE html> or after </html>`;
 
     try {
       const response = await fetch(OPENROUTER_BASE_URL, {
@@ -968,62 +959,66 @@ Respond with a JSON object in this exact format:
       if (!response.ok) throw new Error(`API error: ${response.status}`);
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content || '';
+      let content = data.choices[0]?.message?.content || '';
 
-      // Try to parse JSON response
-      let parsed;
-      try {
-        // Extract JSON from response (handle markdown code blocks)
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
-                          content.match(/```\s*([\s\S]*?)\s*```/) ||
-                          [null, content];
-        parsed = JSON.parse(jsonMatch[1] || content);
-      } catch (e) {
-        // If not valid JSON, create a simple HTML file from the content
-        const htmlContent = content.includes('<!DOCTYPE') ? content : `
-<!DOCTYPE html>
+      // Clean up the response - extract HTML if wrapped in code blocks
+      if (content.includes('```html')) {
+        const match = content.match(/```html\s*([\s\S]*?)\s*```/);
+        if (match) content = match[1];
+      } else if (content.includes('```')) {
+        const match = content.match(/```\s*([\s\S]*?)\s*```/);
+        if (match) content = match[1];
+      }
+
+      // Ensure it starts with DOCTYPE
+      content = content.trim();
+      if (!content.startsWith('<!DOCTYPE')) {
+        // Wrap in basic HTML structure
+        content = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Generated App</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; }
-  </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-  <div class="container mx-auto p-8">
-    <pre class="bg-gray-800 p-4 rounded-lg overflow-auto">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-  </div>
+<body class="bg-slate-900 text-white min-h-screen p-8">
+  ${content}
 </body>
 </html>`;
-        parsed = {
-          files: [{ name: 'index.html', content: htmlContent }],
-          previewHtml: htmlContent,
-          summary: 'Generated code output'
-        };
       }
 
-      // Update state with generated files
-      if (parsed.files && Array.isArray(parsed.files)) {
-        setGeneratedFiles(parsed.files);
-        setSelectedFile(parsed.files[0]);
+      // Create file list
+      const files = [
+        { name: 'index.html', content: content }
+      ];
+
+      // Extract any CSS from the HTML for separate display
+      const styleMatch = content.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+      if (styleMatch) {
+        files.push({ name: 'styles.css', content: styleMatch[1].trim() });
       }
 
-      if (parsed.previewHtml) {
-        setPreviewHtml(parsed.previewHtml);
-        setActiveTab('preview');
+      // Extract any JS from the HTML for separate display
+      const scriptMatch = content.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/);
+      if (scriptMatch && scriptMatch[1].trim()) {
+        files.push({ name: 'script.js', content: scriptMatch[1].trim() });
       }
+
+      // Update state
+      setGeneratedFiles(files);
+      setSelectedFile(files[0]);
+      setPreviewHtml(content);
+      setActiveTab('preview');
 
       // Add assistant message
       setPrototypeMessages(prev => [...prev, {
         id: prev.length + 1,
         role: 'assistant',
-        content: parsed.summary || 'Code generated successfully! Check the preview and code tabs.',
+        content: `Generated ${files.length} file(s). Check the Preview tab to see your app!`,
         timestamp: new Date(),
         model: AI_MODELS[selectedModel].name,
-        artifacts: parsed.files?.map(f => ({ type: 'component', name: f.name, size: `${(f.content.length / 1024).toFixed(1)} KB` }))
+        artifacts: files.map(f => ({ type: 'component', name: f.name, size: `${(f.content.length / 1024).toFixed(1)} KB` }))
       }]);
 
     } catch (error) {
@@ -1031,7 +1026,7 @@ Respond with a JSON object in this exact format:
       setPrototypeMessages(prev => [...prev, {
         id: prev.length + 1,
         role: 'assistant',
-        content: `Error generating code: ${error.message}. Please try again.`,
+        content: `Error: ${error.message}. Please try again.`,
         timestamp: new Date(),
       }]);
     }
