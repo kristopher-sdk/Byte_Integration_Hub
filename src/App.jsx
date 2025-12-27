@@ -883,57 +883,77 @@ const CommandCenterView = ({
 };
 
 // ============================================================================
-// PROTOTYPE VIEW (Bolt.new Embedded)
+// PROTOTYPE VIEW (Bolt.new Launcher)
 // ============================================================================
 
 const PrototypeView = () => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/50">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
-            <span className="font-medium">Rapid Prototype</span>
-          </div>
-          <span className="text-xs text-slate-500 px-2 py-1 bg-slate-800 rounded">Powered by Bolt.new</span>
+    <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="text-center max-w-2xl px-8">
+        {/* Bolt.new Logo/Icon */}
+        <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-cyan-400 via-teal-500 to-emerald-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-cyan-500/20">
+          <Sparkles className="w-12 h-12 text-white" />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.open('https://bolt.new', '_blank')}
-            className="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm transition-all"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Open in New Tab
-          </button>
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-medium rounded-lg text-sm transition-all"
-          >
-            {isFullscreen ? <Monitor className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          </button>
-        </div>
-      </div>
 
-      {/* Bolt.new Iframe */}
-      <div className={`flex-1 relative ${isFullscreen ? 'fixed inset-0 z-50 bg-slate-950' : ''}`}>
-        {isFullscreen && (
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 z-10 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white"
-          >
-            <XCircle className="w-5 h-5" />
-          </button>
-        )}
-        <iframe
-          src="https://bolt.new"
-          title="Bolt.new - Rapid Prototyping"
-          className="w-full h-full border-0"
-          allow="clipboard-read; clipboard-write"
-        />
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
+          Rapid Prototype
+        </h1>
+
+        <p className="text-lg text-slate-400 mb-8">
+          Build full-stack web apps instantly with AI. Powered by Bolt.new - describe what you want and watch it come to life.
+        </p>
+
+        {/* Main CTA Button */}
+        <button
+          onClick={() => window.open('https://bolt.new', '_blank')}
+          className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-900 font-bold text-lg rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:scale-105"
+        >
+          <Sparkles className="w-6 h-6" />
+          Launch Bolt.new
+          <ExternalLink className="w-5 h-5" />
+        </button>
+
+        {/* Feature Cards */}
+        <div className="grid grid-cols-3 gap-4 mt-12">
+          <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+            <Code2 className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
+            <h3 className="font-medium mb-1">AI Code Generation</h3>
+            <p className="text-sm text-slate-500">Describe your app and get production-ready code</p>
+          </div>
+          <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+            <Globe className="w-8 h-8 text-teal-400 mx-auto mb-3" />
+            <h3 className="font-medium mb-1">Live Preview</h3>
+            <p className="text-sm text-slate-500">See your app running in real-time as you build</p>
+          </div>
+          <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+            <Download className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+            <h3 className="font-medium mb-1">Export & Deploy</h3>
+            <p className="text-sm text-slate-500">Download code or deploy directly to the web</p>
+          </div>
+        </div>
+
+        {/* Quick Start Templates */}
+        <div className="mt-10">
+          <p className="text-sm text-slate-500 mb-4">Quick start with a template:</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[
+              { label: 'Dashboard', icon: Monitor },
+              { label: 'Landing Page', icon: Globe },
+              { label: 'E-commerce', icon: Box },
+              { label: 'Blog', icon: FileText },
+              { label: 'Portfolio', icon: Layers },
+            ].map((template, i) => (
+              <button
+                key={i}
+                onClick={() => window.open(`https://bolt.new`, '_blank')}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50 rounded-lg text-sm transition-all"
+              >
+                <template.icon className="w-4 h-4 text-cyan-400" />
+                {template.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
