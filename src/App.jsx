@@ -883,404 +883,58 @@ const CommandCenterView = ({
 };
 
 // ============================================================================
-// PROTOTYPE VIEW (Bolt.new-style with live code generation)
+// PROTOTYPE VIEW (Bolt.new Embedded)
 // ============================================================================
 
-const PrototypeView = ({ messages, inputValue, setInputValue, handleSend, isProcessing, chatEndRef, selectedModel, setSelectedModel }) => {
-  const [previewMode, setPreviewMode] = useState('split');
-  const [activeTab, setActiveTab] = useState('preview');
-  const [viewportMode, setViewportMode] = useState('desktop');
-  const [generatedFiles, setGeneratedFiles] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewHtml, setPreviewHtml] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [prototypeMessages, setPrototypeMessages] = useState([
-    {
-      id: 1,
-      role: 'system',
-      content: 'Welcome to Rapid Prototype! Describe what you want to build and I\'ll generate the code with a live preview.',
-      timestamp: new Date(),
-    }
-  ]);
-  const [protoInput, setProtoInput] = useState('');
-  const protoEndRef = useRef(null);
-
-  useEffect(() => {
-    protoEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [prototypeMessages]);
-
-  // Generate code using OpenRouter
-  const generateCode = async (prompt) => {
-    setIsGenerating(true);
-
-    const userMessage = {
-      id: prototypeMessages.length + 1,
-      role: 'user',
-      content: prompt,
-      timestamp: new Date(),
-    };
-    setPrototypeMessages(prev => [...prev, userMessage]);
-    setProtoInput('');
-
-    const systemPrompt = `You are an expert frontend developer. Generate a complete, working HTML page based on the user's request.
-
-CRITICAL RULES - FOLLOW EXACTLY:
-1. Return ONLY the HTML code - no explanations, no markdown, no code blocks
-2. Start with <!DOCTYPE html> and end with </html>
-3. Include Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
-4. Make it visually stunning with modern design, gradients, shadows
-5. Use a dark theme with slate-900 backgrounds and cyan/teal accents
-6. Include all CSS inline or in a <style> tag
-7. Make interactive elements work with inline JavaScript if needed
-8. The code must be self-contained and work in an iframe
-
-DO NOT include any text before <!DOCTYPE html> or after </html>`;
-
-    try {
-      const response = await fetch(OPENROUTER_BASE_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Byte Rapid Prototype'
-        },
-        body: JSON.stringify({
-          model: AI_MODELS[selectedModel].id,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 4096,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-      const data = await response.json();
-      let content = data.choices[0]?.message?.content || '';
-
-      // Clean up the response - extract HTML if wrapped in code blocks
-      if (content.includes('```html')) {
-        const match = content.match(/```html\s*([\s\S]*?)\s*```/);
-        if (match) content = match[1];
-      } else if (content.includes('```')) {
-        const match = content.match(/```\s*([\s\S]*?)\s*```/);
-        if (match) content = match[1];
-      }
-
-      // Ensure it starts with DOCTYPE
-      content = content.trim();
-      if (!content.startsWith('<!DOCTYPE')) {
-        // Wrap in basic HTML structure
-        content = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white min-h-screen p-8">
-  ${content}
-</body>
-</html>`;
-      }
-
-      // Create file list
-      const files = [
-        { name: 'index.html', content: content }
-      ];
-
-      // Extract any CSS from the HTML for separate display
-      const styleMatch = content.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-      if (styleMatch) {
-        files.push({ name: 'styles.css', content: styleMatch[1].trim() });
-      }
-
-      // Extract any JS from the HTML for separate display
-      const scriptMatch = content.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/);
-      if (scriptMatch && scriptMatch[1].trim()) {
-        files.push({ name: 'script.js', content: scriptMatch[1].trim() });
-      }
-
-      // Update state
-      setGeneratedFiles(files);
-      setSelectedFile(files[0]);
-      setPreviewHtml(content);
-      setActiveTab('preview');
-
-      // Add assistant message
-      setPrototypeMessages(prev => [...prev, {
-        id: prev.length + 1,
-        role: 'assistant',
-        content: `Generated ${files.length} file(s). Check the Preview tab to see your app!`,
-        timestamp: new Date(),
-        model: AI_MODELS[selectedModel].name,
-        artifacts: files.map(f => ({ type: 'component', name: f.name, size: `${(f.content.length / 1024).toFixed(1)} KB` }))
-      }]);
-
-    } catch (error) {
-      console.error('Code generation error:', error);
-      setPrototypeMessages(prev => [...prev, {
-        id: prev.length + 1,
-        role: 'assistant',
-        content: `Error: ${error.message}. Please try again.`,
-        timestamp: new Date(),
-      }]);
-    }
-
-    setIsGenerating(false);
-  };
-
-  const handleProtoSend = () => {
-    if (!protoInput.trim() || isGenerating) return;
-    generateCode(protoInput);
-  };
-
-  const handleTemplateClick = (template) => {
-    const prompts = {
-      'Dashboard': 'Create a modern analytics dashboard with 4 stat cards showing revenue, users, orders, and growth. Include a line chart placeholder and a recent activity list. Use a dark theme with cyan accents.',
-      'Landing Page': 'Create a stunning landing page for a SaaS product called "Byte AI". Include a hero section with headline and CTA, features section with 3 cards, and a footer. Use gradient backgrounds and modern design.',
-      'Mobile App': 'Create a mobile app UI mockup for a task management app. Show a header, task list with checkboxes, and a floating action button. Style it for mobile viewport.',
-      'API Service': 'Create an API documentation page showing endpoints for a REST API. Include method badges (GET, POST, PUT, DELETE), endpoint URLs, and example responses.',
-      'Component Library': 'Create a component showcase page displaying buttons (primary, secondary, outline), input fields, cards, and badges. Show each component in different states.'
-    };
-    setProtoInput(prompts[template.label] || `Create a ${template.label.toLowerCase()}`);
-  };
+const PrototypeView = () => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
-    <div className="h-full flex">
-      {/* Chat Panel */}
-      <div className={`flex flex-col bg-slate-900/50 border-r border-slate-800/50 ${previewMode === 'split' ? 'w-1/2' : previewMode === 'chat' ? 'flex-1' : 'w-80'}`}>
-        <div className="p-4 border-b border-slate-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium">Start from template</span>
-            </div>
-            <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/50 bg-slate-900/50">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <span className="font-medium">Rapid Prototype</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {PROJECT_TEMPLATES.map((template, i) => (
-              <button
-                key={i}
-                onClick={() => handleTemplateClick(template)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 hover:bg-cyan-500/10 border border-slate-700 hover:border-cyan-500/50 rounded-lg text-xs transition-all"
-              >
-                <template.icon className="w-3.5 h-3.5 text-cyan-400" />
-                {template.label}
-              </button>
-            ))}
-          </div>
+          <span className="text-xs text-slate-500 px-2 py-1 bg-slate-800 rounded">Powered by Bolt.new</span>
         </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {prototypeMessages.map(message => (
-            <MessageBubble key={message.id} message={message} compact />
-          ))}
-          {isGenerating && <ProcessingIndicator model={AI_MODELS[selectedModel].name} />}
-          <div ref={protoEndRef} />
-        </div>
-
-        <div className="p-4 border-t border-slate-800/50">
-          <div className="flex items-end gap-3 bg-slate-800/50 rounded-xl p-3 border border-slate-700 focus-within:border-cyan-500/50 transition-all">
-            <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all">
-              <Paperclip className="w-5 h-5" />
-            </button>
-            <textarea
-              value={protoInput}
-              onChange={(e) => setProtoInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleProtoSend();
-                }
-              }}
-              placeholder="Describe what you want to build..."
-              rows={1}
-              className="flex-1 bg-transparent resize-none outline-none text-white placeholder-slate-500"
-              style={{ minHeight: '24px', maxHeight: '120px' }}
-            />
-            <button
-              onClick={handleProtoSend}
-              disabled={isGenerating || !protoInput.trim()}
-              className="p-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 rounded-lg transition-all"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.open('https://bolt.new', '_blank')}
+            className="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-sm transition-all"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open in New Tab
+          </button>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-medium rounded-lg text-sm transition-all"
+          >
+            {isFullscreen ? <Monitor className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </button>
         </div>
       </div>
 
-      {/* Preview Panel */}
-      {previewMode !== 'chat' && (
-        <div className="flex-1 flex flex-col bg-slate-950">
-          {/* Tabs Header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50">
-            <div className="flex items-center gap-1">
-              {['preview', 'code', 'files'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === tab
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  {tab === 'files' && generatedFiles.length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">
-                      {generatedFiles.length}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewportMode('desktop')}
-                className={`p-1.5 rounded-lg transition-all ${viewportMode === 'desktop' ? 'text-cyan-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
-              >
-                <Monitor className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewportMode('mobile')}
-                className={`p-1.5 rounded-lg transition-all ${viewportMode === 'mobile' ? 'text-cyan-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
-              >
-                <Smartphone className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (previewHtml) {
-                    const blob = new Blob([previewHtml], { type: 'text/html' });
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                  }
-                }}
-                className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-medium text-sm rounded-lg transition-all flex items-center gap-2"
-              >
-                <Play className="w-3.5 h-3.5" />
-                Preview
-              </button>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 relative overflow-hidden">
-            {/* Preview Tab */}
-            {activeTab === 'preview' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 p-4">
-                {previewHtml ? (
-                  <div className={`bg-white rounded-lg shadow-2xl overflow-hidden transition-all ${
-                    viewportMode === 'mobile' ? 'w-[375px] h-[667px]' : 'w-full h-full'
-                  }`}>
-                    <iframe
-                      srcDoc={previewHtml}
-                      title="Preview"
-                      className="w-full h-full border-0"
-                      sandbox="allow-scripts allow-same-origin"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl flex items-center justify-center">
-                      <Globe className="w-8 h-8 text-slate-500" />
-                    </div>
-                    <p className="text-slate-400 mb-2">No preview available</p>
-                    <p className="text-sm text-slate-500">Describe what you want to build to see a live preview</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Code Tab */}
-            {activeTab === 'code' && (
-              <div className="absolute inset-0 flex">
-                {/* File tabs */}
-                {generatedFiles.length > 0 && (
-                  <div className="w-48 bg-slate-900 border-r border-slate-800 overflow-y-auto">
-                    <div className="p-2 text-xs text-slate-500 uppercase tracking-wider">Files</div>
-                    {generatedFiles.map((file, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedFile(file)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-all ${
-                          selectedFile?.name === file.name
-                            ? 'bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-500'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <FileCode className="w-4 h-4" />
-                        <span className="truncate">{file.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* Code content */}
-                <div className="flex-1 overflow-auto bg-slate-950">
-                  {selectedFile ? (
-                    <pre className="p-4 text-sm font-mono text-slate-300 whitespace-pre-wrap">
-                      <code>{selectedFile.content}</code>
-                    </pre>
-                  ) : (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="text-center">
-                        <Code2 className="w-12 h-12 mx-auto mb-3 text-slate-700" />
-                        <p className="text-slate-500">No code generated yet</p>
-                        <p className="text-sm text-slate-600 mt-1">Start building to see code here</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Files Tab */}
-            {activeTab === 'files' && (
-              <div className="absolute inset-0 overflow-auto bg-slate-900/50 p-4">
-                {generatedFiles.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-slate-400 mb-4">
-                      <Folder className="w-4 h-4" />
-                      <span className="text-sm font-medium">Project Files ({generatedFiles.length})</span>
-                    </div>
-                    {generatedFiles.map((file, i) => (
-                      <div
-                        key={i}
-                        onClick={() => {
-                          setSelectedFile(file);
-                          setActiveTab('code');
-                        }}
-                        className="flex items-center gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-cyan-500/30 rounded-lg cursor-pointer transition-all"
-                      >
-                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-400/20 to-teal-500/20 rounded-lg flex items-center justify-center">
-                          <FileCode className="w-5 h-5 text-cyan-400" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-white">{file.name}</p>
-                          <p className="text-xs text-slate-500">{(file.content.length / 1024).toFixed(1)} KB</p>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-slate-500" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <Folder className="w-12 h-12 mx-auto mb-3 text-slate-700" />
-                      <p className="text-slate-500">No files yet</p>
-                      <p className="text-sm text-slate-600 mt-1">Start building to create project files</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Bolt.new Iframe */}
+      <div className={`flex-1 relative ${isFullscreen ? 'fixed inset-0 z-50 bg-slate-950' : ''}`}>
+        {isFullscreen && (
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-4 right-4 z-10 p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white"
+          >
+            <XCircle className="w-5 h-5" />
+          </button>
+        )}
+        <iframe
+          src="https://bolt.new"
+          title="Bolt.new - Rapid Prototyping"
+          className="w-full h-full border-0"
+          allow="clipboard-read; clipboard-write"
+        />
+      </div>
     </div>
   );
 };
